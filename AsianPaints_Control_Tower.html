@@ -1,0 +1,979 @@
+<title>Lifecycle Control Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --rail:#16233C; --rail-2:#0F1A2E; --rail-ink:#A9B6CC; --rail-hi:#FFFFFF;
+  --bg:#EEF1F6; --panel:#FFFFFF; --sunk:#F5F7FA;
+  --rule:#E1E6EF; --rule-2:#C7CFDC;
+  --ink:#131A26; --ink-2:#3D4757; --muted:#69748A; --faint:#98A2B5;
+  --navy:#1F3864; --accent:#D2492A; --accent-t:#FCEDE8;
+  --s1:#2E6DB4; --s2:#2E9E6B; --s3:#D9A431; --s4:#D2591D; --s5:#94275C;
+  --s1t:#E9F0F9; --s2t:#E8F5EF; --s3t:#FAF3E1; --s4t:#FBECE3; --s5t:#F6E8EF;
+  --good:#1B7A40; --goodt:#E4F1E9; --warn:#8F6410; --warnt:#F8F0DC; --crit:#A32B22; --critt:#F9E8E6;
+  --sh:0 1px 2px rgba(19,26,38,.05),0 8px 22px -14px rgba(19,26,38,.28);
+  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --h:56px; --rw:212px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;
+     line-height:1.5;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow:hidden}
+h1,h2,h3,h4{margin:0;font-weight:600}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.app{display:grid;grid-template-columns:var(--rw) minmax(0,1fr);height:100vh}
+
+/* ============ rail ============ */
+.rail{background:var(--rail);color:var(--rail-ink);display:flex;flex-direction:column;overflow:hidden}
+.brand{height:var(--h);display:flex;align-items:center;gap:10px;padding:0 16px;
+       border-bottom:1px solid rgba(255,255,255,.09);flex:none}
+.fan{display:flex;gap:2px;flex:none}.fan i{width:5px;height:20px;border-radius:1px}
+.brand b{color:var(--rail-hi);font-size:13.5px;font-weight:600;letter-spacing:-.005em;line-height:1.15}
+.brand span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.13em;
+            text-transform:uppercase;color:#6E7F9C;font-weight:400}
+.nav{padding:12px 10px;display:grid;gap:2px}
+.nav>p{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+       color:#5E6E8B;padding:10px 8px 5px}
+.nv{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;text-align:left;
+    padding:8px 10px;border-radius:5px;color:var(--rail-ink);font-size:13.5px;font-weight:500}
+.nv:hover{background:rgba(255,255,255,.07);color:#fff}
+.nv[aria-current=page]{background:var(--rail-2);color:#fff;font-weight:600;
+    box-shadow:inset 2px 0 0 var(--accent)}
+.nv .ic{width:16px;height:16px;flex:none;opacity:.85}
+.nv .ct{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:#7A8AA6}
+.nv[aria-current=page] .ct{color:var(--accent)}
+.railfoot{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,.09);
+          font-size:11px;color:#6E7F9C;line-height:1.5}
+.railfoot b{color:#A9B6CC;font-weight:600}
+
+/* ============ topbar ============ */
+.main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.top{height:var(--h);flex:none;background:var(--panel);border-bottom:1px solid var(--rule);
+     display:flex;align-items:center;gap:14px;padding:0 18px}
+.vtitle{font-size:15px;font-weight:600;white-space:nowrap}
+.vtitle em{font-style:normal;color:var(--muted);font-weight:400;font-size:12.5px;margin-left:8px}
+.spacer{flex:1}
+.srch{position:relative}
+.srch input{width:190px;border:1px solid var(--rule-2);border-radius:5px;padding:6px 10px 6px 28px;
+            font-size:13px;background:var(--sunk)}
+.srch input:focus{background:#fff;border-color:var(--accent)}
+.srch svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.45}
+.dial{display:flex;align-items:center;gap:9px;padding:5px 11px;border:1px solid var(--rule-2);
+      border-radius:5px;background:var(--sunk)}
+.dial label{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.dial input{width:112px;accent-color:var(--accent);margin:0;height:16px}
+.dial output{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);min-width:44px;text-align:right}
+.gbtn{border:1px solid var(--rule-2);background:var(--panel);border-radius:5px;padding:6px 11px;
+      font-size:12.5px;font-weight:500;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.gbtn:hover{border-color:var(--accent);color:var(--accent)}
+.gbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.gbtn .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* ============ kpi strip ============ */
+.kstrip{flex:none;background:var(--panel);border-bottom:1px solid var(--rule);
+        display:grid;grid-template-columns:repeat(6,1fr)}
+.k{padding:11px 16px 12px;border-right:1px solid var(--rule);min-width:0}
+.k:last-child{border-right:0}
+.k .l{font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;
+      color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k .v{font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:3px;white-space:nowrap}
+.k .v u{text-decoration:none;font-size:11.5px;font-weight:600;color:var(--muted);margin-left:3px}
+.k .d{font-size:11px;margin-top:1px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k .d b{font-weight:600}
+@media(max-width:1240px){.kstrip{grid-template-columns:repeat(3,1fr)}
+  .k{border-bottom:1px solid var(--rule)}}
+
+/* ============ workspace ============ */
+.work{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 18px 26px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+@media(max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:7px;box-shadow:var(--sh);
+      display:flex;flex-direction:column;min-width:0}
+.card>header{padding:12px 15px 0;display:flex;align-items:flex-start;gap:12px}
+.card>header h3{font-size:14px;letter-spacing:-.005em}
+.card>header p{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+.card>header .rt{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap}
+.card .body{padding:8px 15px 14px}
+.card .foot{border-top:1px solid var(--rule);padding:9px 15px;font-size:11.5px;color:var(--muted);line-height:1.45}
+.card .foot b{color:var(--navy);font-weight:600}
+
+/* filter chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.chips .lb{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+           color:var(--muted);margin-right:2px}
+.chip{border:1px solid var(--rule-2);background:var(--panel);border-radius:20px;padding:4px 11px 4px 8px;
+      font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
+.chip i{width:8px;height:8px;border-radius:50%;flex:none}
+.chip .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:500}
+.chip[aria-pressed=true]{border-width:1.5px;color:var(--ink)}
+.chip[aria-pressed=false]{opacity:.42}
+.chip.clear{border-style:dashed;color:var(--muted);font-weight:500}
+
+/* ============ table ============ */
+.tw{overflow:auto;max-height:none}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+thead th{position:sticky;top:0;z-index:2;background:var(--panel);font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;
+  padding:9px 10px;border-bottom:1px solid var(--rule-2);white-space:nowrap;cursor:pointer;user-select:none}
+thead th.l{text-align:left}
+thead th:hover{color:var(--accent)}
+thead th .ar{opacity:0;margin-left:4px}
+thead th[data-on] .ar{opacity:1;color:var(--accent)}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+tbody td.l{text-align:left;white-space:normal}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--sunk)}
+tbody tr.sel td{background:var(--accent-t)}
+.mono{font-family:var(--mono);font-size:12px}
+.nm{font-weight:600;line-height:1.25}
+.sub{font-size:11px;color:var(--faint);font-family:var(--mono)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 5px;border-radius:11px;
+      font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill i{width:6px;height:6px;border-radius:50%;flex:none}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;white-space:nowrap}
+.up{color:var(--good)}.dn{color:var(--crit)}
+.empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
+
+/* ============ policy editor ============ */
+.pol{width:100%;border-collapse:collapse;font-size:12.5px}
+.pol th{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--muted);font-weight:500;padding:0 6px 7px;text-align:center;white-space:nowrap}
+.pol th.l{text-align:left}
+.pol td{padding:5px 6px;border-top:1px solid var(--rule);text-align:center}
+.pol td.l{text-align:left}
+.pol input{width:56px;border:1px solid var(--rule);background:var(--sunk);border-radius:4px;
+           padding:4px;font-family:var(--mono);font-size:12px;text-align:center;font-weight:600}
+.pol input:focus{border-color:var(--accent);background:#fff}
+.pol input.chg{border-color:var(--accent);background:var(--accent-t);color:var(--accent)}
+.pol .der{font-family:var(--mono);font-size:12px;color:var(--navy);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--rule-2);border-radius:5px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:5px 10px;font-size:12px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff;font-weight:600}
+
+/* range rows */
+.rr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;margin-bottom:10px}
+.rr:last-child{margin-bottom:0}
+.rr label{font-size:12px;color:var(--ink-2)}
+.rr output{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--navy);
+           background:var(--sunk);padding:1px 7px;border-radius:3px;min-width:52px;text-align:right}
+.rr input{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0;height:15px}
+
+/* ============ drawer ============ */
+.scrim{position:fixed;inset:0;background:rgba(19,26,38,.34);opacity:0;pointer-events:none;
+       transition:opacity .16s;z-index:50}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(468px,94vw);background:var(--panel);
+        border-left:1px solid var(--rule-2);box-shadow:-18px 0 44px -22px rgba(19,26,38,.5);
+        transform:translateX(100%);transition:transform .2s cubic-bezier(.32,.72,0,1);z-index:51;
+        display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.dhead{padding:16px 18px 14px;border-bottom:1px solid var(--rule);flex:none;position:relative}
+.dhead .x{position:absolute;top:12px;right:12px;border:0;background:var(--sunk);border-radius:5px;
+          width:28px;height:28px;color:var(--muted);font-size:16px;line-height:1}
+.dhead .x:hover{background:var(--critt);color:var(--crit)}
+.dhead h2{font-size:17px;letter-spacing:-.01em;padding-right:34px;line-height:1.25}
+.dhead .meta{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:3px}
+.dhead .tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.dbody{overflow-y:auto;padding:16px 18px 28px;flex:1}
+.dsec{margin-bottom:20px}
+.dsec>h4{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;
+         color:var(--muted);margin-bottom:9px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:12.5px}
+.kv dt{color:var(--muted);margin:0}
+.kv dd{margin:0;font-family:var(--mono);font-weight:600;text-align:right}
+.calc{background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;
+      font-family:var(--mono);font-size:12px;line-height:1.85}
+.calc .op{color:var(--muted)}
+.calc .rs{color:var(--navy);font-weight:600}
+.calc .fin{border-top:1px dashed var(--rule-2);margin-top:8px;padding-top:8px;font-size:13px;
+           color:var(--accent);font-weight:600}
+.act{border-left:3px solid var(--accent);background:var(--accent-t);padding:11px 13px;border-radius:0 5px 5px 0;
+     font-size:12.5px;line-height:1.55}
+.act b{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+       color:var(--accent);margin-bottom:4px}
+
+svg.f{display:block;width:100%;height:auto;max-width:680px}
+svg text{font-family:var(--sans)}
+#tip{position:fixed;z-index:70;pointer-events:none;opacity:0;transition:opacity .1s;background:#131A26;
+     color:#fff;border-radius:5px;padding:8px 11px;font-size:12px;line-height:1.5;max-width:260px;
+     box-shadow:0 12px 30px -10px rgba(0,0,0,.55)}
+#tip .k2{color:#98A2B5;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+         text-transform:uppercase;display:block;margin-bottom:3px}
+#tip .r{display:flex;justify-content:space-between;gap:16px}
+#tip .r span:last-child{font-family:var(--mono);font-weight:600}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+
+<div class="app">
+  <nav class="rail">
+    <div class="brand">
+      <span class="fan" aria-hidden="true"><i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i></span>
+      <b>Lifecycle Control Tower<span>Asian Paints &middot; finished goods</span></b>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div class="railfoot">
+      <b>Team Opportunists</b><br>NMIMS Mumbai &middot; Chain Reaction 2026, Round&nbsp;1<br>
+      <span style="color:#5E6E8B">20-SKU illustrative model &middot; live recompute</span>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="top">
+      <div class="vtitle" id="vtitle"></div>
+      <div class="spacer"></div>
+      <div class="dial">
+        <label for="base">Today&rsquo;s flat cover</label>
+        <input type="range" id="base" min="28" max="45" step="1" value="36" aria-label="Today's flat cover in days">
+        <output id="baseo">36 d</output>
+      </div>
+      <div class="srch">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+        <input type="search" id="q" placeholder="Find a product&hellip;" aria-label="Search products">
+      </div>
+      <button class="gbtn" id="reset" type="button" hidden><span class="dot"></span><span id="resetn"></span></button>
+    </div>
+
+    <div class="kstrip" id="kstrip"></div>
+    <div class="work" id="work"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Product detail">
+  <div class="dhead" id="dhead"></div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const SKUS=[{"id":"SKU01","name":"Neo Bharat Latex Emulsion","cat":"Interior emulsion (value)","launch":2025,"age":8,"shelf":24,"cost":90,"svc":"B","reach":35,"po":"N","gm":0.34,"v":[62,21,39,54,34,58,64,32,100,97,76,93,114,104,111,91,142,139,148,115,192,165,160,220]},{"id":"SKU02","name":"Royale Health Shield","cat":"Interior emulsion (premium)","launch":2025,"age":7,"shelf":18,"cost":320,"svc":"A","reach":40,"po":"N","gm":0.5,"v":[24,8,29,8,74,48,48,94,41,95,45,82,77,142,155,116,148,132,155,132,118,122,177,224]},{"id":"SKU03","name":"SmartCare Dampproof Ultra","cat":"Waterproofing","launch":2025,"age":9,"shelf":12,"cost":210,"svc":"B","reach":28,"po":"N","gm":0.44,"v":[31,20,80,50,53,63,61,64,46,95,88,123,95,68,114,160,121,116,116,126,149,136,201,169]},{"id":"SKU04","name":"Beautiful Home Texture - Marrakesh","cat":"Textures (decor)","launch":2026,"age":6,"shelf":12,"cost":400,"svc":"C","reach":22,"po":"N","gm":0.52,"v":[27,63,71,40,58,74,60,32,92,103,99,76,99,97,110,151,163,151,154,164,155,160,154,174]},{"id":"SKU05","name":"SmartCare Damp Block","cat":"Waterproofing","launch":2024,"age":24,"shelf":12,"cost":180,"svc":"A","reach":95,"po":"N","gm":0.42,"v":[173,142,115,118,114,156,164,120,181,159,222,193,244,190,202,226,254,248,205,251,254,249,250,324]},{"id":"SKU06","name":"Apcolite All Protek Enamel","cat":"Enamel","launch":2024,"age":22,"shelf":24,"cost":240,"svc":"B","reach":80,"po":"N","gm":0.4,"v":[99,93,142,135,137,168,167,170,194,183,164,179,181,209,180,166,227,195,184,257,234,275,253,244]},{"id":"SKU07","name":"TruCare Wall Putty","cat":"Putty / ancillary","launch":2024,"age":28,"shelf":12,"cost":40,"svc":"B","reach":110,"po":"N","gm":0.26,"v":[75,103,117,108,131,103,153,110,162,194,212,237,153,225,244,245,199,243,291,204,267,292,248,291]},{"id":"SKU08","name":"Royale Aspira","cat":"Interior emulsion (premium)","launch":2024,"age":26,"shelf":24,"cost":300,"svc":"A","reach":90,"po":"N","gm":0.5,"v":[80,94,101,137,136,173,127,157,194,190,145,208,183,214,219,252,228,180,201,267,246,293,275,254]},{"id":"SKU09","name":"Apcolite Premium Emulsion","cat":"Interior emulsion","launch":2016,"age":120,"shelf":24,"cost":200,"svc":"A","reach":158,"po":"N","gm":0.44,"v":[572,618,596,561,568,543,560,564,580,620,575,598,543,616,599,559,595,560,525,611,570,587,557,546]},{"id":"SKU10","name":"Tractor Emulsion Sparc","cat":"Interior emulsion (economy)","launch":2014,"age":140,"shelf":24,"cost":110,"svc":"A","reach":160,"po":"N","gm":0.33,"v":[858,806,806,838,827,867,847,926,829,829,789,843,877,806,841,881,839,820,896,852,868,908,907,833]},{"id":"SKU11","name":"Apex Ultima Exterior","cat":"Exterior emulsion (premium)","launch":2018,"age":96,"shelf":24,"cost":280,"svc":"A","reach":157,"po":"N","gm":0.48,"v":[839,853,807,793,885,650,799,856,769,900,794,857,781,826,863,815,803,833,786,857,853,828,941,827]},{"id":"SKU12","name":"Ace Exterior Emulsion","cat":"Exterior emulsion (economy)","launch":2015,"age":132,"shelf":24,"cost":150,"svc":"A","reach":159,"po":"N","gm":0.35,"v":[680,779,829,766,740,778,742,795,765,830,790,735,796,812,744,751,666,813,746,676,693,764,810,772]},{"id":"SKU13","name":"Royale Luxury Emulsion","cat":"Interior emulsion (premium)","launch":2017,"age":108,"shelf":24,"cost":330,"svc":"A","reach":156,"po":"N","gm":0.51,"v":[544,543,496,450,502,510,529,520,506,577,489,557,477,537,511,532,498,463,444,504,516,510,500,528]},{"id":"SKU14","name":"Utsav Distemper","cat":"Distemper","launch":2014,"age":150,"shelf":24,"cost":70,"svc":"C","reach":115,"po":"N","gm":0.3,"v":[338,274,304,270,330,297,282,252,256,261,237,200,234,234,191,180,194,183,162,168,143,172,171,152]},{"id":"SKU15","name":"Apex (legacy exterior)","cat":"Exterior emulsion (legacy)","launch":2015,"age":132,"shelf":24,"cost":160,"svc":"C","reach":100,"po":"N","gm":0.33,"v":[312,286,281,329,275,258,284,262,246,287,250,277,186,233,223,209,213,204,187,158,158,160,143,147]},{"id":"SKU16","name":"Apcolite Synthetic Enamel","cat":"Enamel (solvent-based)","launch":2014,"age":144,"shelf":18,"cost":190,"svc":"C","reach":120,"po":"N","gm":0.34,"v":[334,300,328,319,288,287,237,289,226,248,278,251,258,225,221,191,248,193,192,178,115,126,153,103]},{"id":"SKU17","name":"Woodtech Melamine (older)","cat":"Wood finish (legacy)","launch":2017,"age":110,"shelf":18,"cost":260,"svc":"C","reach":85,"po":"N","gm":0.38,"v":[309,312,284,270,304,286,269,288,266,235,291,253,242,228,265,190,187,179,156,182,170,159,141,169]},{"id":"SKU18","name":"Discontinued Shade Family R","cat":"Interior emulsion (legacy)","launch":2013,"age":160,"shelf":24,"cost":180,"svc":"C","reach":45,"po":"Y","gm":0.3,"v":[98,97,95,89,81,76,83,74,65,68,66,61,49,59,50,51,42,58,44,33,34,29,35,27]},{"id":"SKU19","name":"Solvent Primer (legacy)","cat":"Undercoat (solvent)","launch":2011,"age":175,"shelf":18,"cost":120,"svc":"C","reach":50,"po":"Y","gm":0.28,"v":[87,90,97,93,87,83,75,62,63,74,69,69,60,66,46,53,58,41,54,39,38,25,42,30]},{"id":"SKU20","name":"Regional Distemper (legacy)","cat":"Distemper (regional)","launch":2015,"age":130,"shelf":24,"cost":60,"svc":"C","reach":38,"po":"N","gm":0.28,"v":[79,93,96,81,80,83,88,77,79,81,68,67,63,55,60,49,43,50,54,48,43,38,25,28]}];
+/* ====================== model ====================== */
+const STAGES = ["Introduction","Growth","Maturity","Decline","Exit"];
+const SC = {Introduction:"var(--s1)",Growth:"var(--s2)",Maturity:"var(--s3)",Decline:"var(--s4)",Exit:"var(--s5)"};
+const ST = {Introduction:"var(--s1-t)",Growth:"var(--s2-t)",Maturity:"var(--s3-t)",Decline:"var(--s4-t)",Exit:"var(--s5-t)"};
+const HEX = {Introduction:"#2E6DB4",Growth:"#2E9E6B",Maturity:"#D9A431",Decline:"#D2591D",Exit:"#94275C"};
+
+const DEFAULTS = {
+  base: 36,
+  th: {age:9, ig:0.08, gg:0.15, dg:-0.08, eg:-0.10, ev:60},
+  pol: {
+    Introduction:{sl:0.98, lt:21, cyc:24, rol:17, reach:40},
+    Growth:      {sl:0.97, lt:18, cyc:30, rol:16, reach:110},
+    Maturity:    {sl:0.96, lt:14, cyc:28, rol:8,  reach:160},
+    Decline:     {sl:0.92, lt:18, cyc:12, rol:4,  reach:70},
+    Exit:        {sl:0.85, lt:21, cyc:6,  rol:1,  reach:20}
+  },
+  w: {mom:0.35, vol:0.25, dec:0.20, shf:0.20}
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+let S = clone(DEFAULTS);
+let TAB = "overview";
+
+const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+const sd   = a => {const m=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-1));};
+function slope(y){ const n=y.length, x=[...Array(n)].map((_,i)=>i+1), mx=mean(x), my=mean(y);
+  let num=0,den=0; for(let i=0;i<n;i++){num+=(x[i]-mx)*(y[i]-my); den+=(x[i]-mx)**2;} return num/den; }
+/* Acklam inverse normal CDF — the NORMSINV the workbook uses */
+function normsinv(p){
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00],
+        b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01],
+        c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00],
+        d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425; let q,r;
+  if(p<pl){ q=Math.sqrt(-2*Math.log(p));
+    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if(p<=1-pl){ q=p-0.5; r=q*q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  q=Math.sqrt(-2*Math.log(1-p));
+  return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+
+function compute(){
+  const th=S.th, pol=S.pol, base=S.base;
+  const rows = SKUS.map(k=>{
+    const v=k.v, recent=v.slice(12,24), h2=v.slice(18,24), h1=v.slice(12,18);
+    const velocity=mean(recent), cv=sd(recent)/velocity;
+    const growth=mean(h2)/mean(h1)-1, trend=slope(v)/mean(v);
+    let stage;
+    if(k.po==="Y") stage="Exit";
+    else if(k.age<=th.age && growth>=th.ig) stage="Introduction";
+    else if(growth>=th.gg) stage="Growth";
+    else if(growth<=th.eg && velocity<th.ev) stage="Exit";
+    else if(growth<=th.dg) stage="Decline";
+    else stage="Maturity";
+    const p=pol[stage], z=normsinv(p.sl);
+    const daily=velocity/30, sigma=cv*velocity;
+    const ss=z*sigma*Math.sqrt(p.lt/30), ssDays=ss/daily;
+    const cover=ssDays+p.cyc/2+p.rol;
+    const stock=cover*daily, inv=stock*k.cost/100, baseInv=base*daily*k.cost/100;
+    // radar
+    const sR=slope(h2), sP=slope(h1), decel=sR<sP;
+    const momSub=Math.min(1,Math.max(0,-growth/0.2)), volSub=Math.min(1,cv/0.3);
+    const shelfUrg=k.shelf<=12?1:(k.shelf<=18?0.5:0);
+    const score=100*(S.w.mom*momSub+S.w.vol*volSub+S.w.dec*(decel?1:0)+S.w.shf*shelfUrg);
+    const flag=score>=55?"Pre-empt":score>=35?"Watch":"Healthy";
+    // value overlay
+    const gp=velocity*12*k.cost*k.gm;
+    const tier=gp>=400000?"A":gp>=150000?"B":"C";
+    let action;
+    if(stage==="Exit") action = tier==="A" ? "Central pool — harvest margin" : "Delist / last-time-buy";
+    else if(stage==="Decline") action = tier==="A" ? "Retain & centralise" : tier==="B" ? "Large-dealer channel only" : "Rationalise / delist";
+    else action = k.shelf<=12 ? "Radar-monitored (specialty)" : "—";
+    return {...k, velocity, cv, growth, trend, stage, z, daily, sigma, ss, ssDays, cover,
+            stock, inv, baseInv, released:baseInv-inv, sR, sP, decel, score, flag, gp, tier, action};
+  });
+
+  const byStage = STAGES.map(st=>{
+    const g=rows.filter(r=>r.stage===st);
+    const inv=g.reduce((s,r)=>s+r.inv,0), bi=g.reduce((s,r)=>s+r.baseInv,0);
+    return {stage:st, n:g.length, rows:g, inv, baseInv:bi, released:bi-inv,
+            cv:g.length?mean(g.map(r=>r.cv)):0,
+            cover:g.length?mean(g.map(r=>r.cover)):0,
+            ssDays:g.length?mean(g.map(r=>r.ssDays)):0};
+  });
+
+  const inv=rows.reduce((s,r)=>s+r.inv,0), baseInv=rows.reduce((s,r)=>s+r.baseInv,0);
+  const dailyVal=rows.reduce((s,r)=>s+r.daily*r.cost,0)/100;  // Rs L per day
+  const blended=rows.reduce((s,r)=>s+r.cover*r.daily,0)/rows.reduce((s,r)=>s+r.daily,0);
+  const g=n=>byStage.find(b=>b.stage===n);
+  const parts={
+    maturity:g("Maturity").released/100,
+    tail:(g("Decline").released+g("Exit").released)/100,
+    invest:(g("Introduction").released+g("Growth").released)/100
+  };
+  const sens=[]; for(let d=28;d<=45;d++) sens.push({d, cr:(d*dailyVal-inv)/100});
+  const cI=g("Introduction").cover, cM=g("Maturity").cover;
+  return {rows, byStage, inv, baseInv, released:baseInv-inv, dailyVal, blended, parts, sens,
+          pct:(baseInv-inv)/baseInv,
+          spreadCover: cM? cI/cM : 0,
+          spreadCV: g("Maturity").cv? g("Introduction").cv/g("Maturity").cv : 0};
+}
+
+/* ====================== format ====================== */
+const f1=n=>n.toFixed(1), f2=n=>n.toFixed(2), f0=n=>Math.round(n).toLocaleString("en-IN");
+const cr=n=>(n>=0?"":"−")+"₹"+Math.abs(n).toFixed(1);
+const pc=n=>(n>=0?"+":"−")+Math.abs(n*100).toFixed(0)+"%";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+
+/* ================= shared UI state ================= */
+const UI = { view:"overview", q:"", stages:new Set(STAGES), sort:{k:"released",d:-1}, sku:null };
+const IDX = st => STAGES.indexOf(st)+1;
+const SVAR = st => `var(--s${IDX(st)})`;
+const STINT = st => `var(--s${IDX(st)}t)`;
+const HEXC = {Introduction:"#2E6DB4",Growth:"#2E9E6B",Maturity:"#D9A431",Decline:"#D2591D",Exit:"#94275C"};
+const pill = st=>`<span class="pill" style="background:${STINT(st)};color:${SVAR(st)}"><i style="background:${SVAR(st)}"></i>${st}</span>`;
+const CR = n=>(n<0?"−₹":"₹")+Math.abs(n).toFixed(1);
+
+/* ================= svg + tooltip ================= */
+const NS="http://www.w3.org/2000/svg";
+const svg=(w,h)=>{const s=document.createElementNS(NS,"svg");s.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  s.setAttribute("preserveAspectRatio","xMidYMid meet");s.setAttribute("class","f");return s;};
+const el=(t,a,p)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);if(p)p.appendChild(n);return n;};
+const tx=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t;};
+function bar(x,y,w,h,r,dir){r=Math.min(r,Math.abs(h)/2,Math.max(w,1)/2);
+  if(dir==="l")return `M${x+w},${y} L${x+r},${y} Q${x},${y} ${x},${y+r} L${x},${y+h-r} Q${x},${y+h} ${x+r},${y+h} L${x+w},${y+h} Z`;
+  if(dir==="u")return `M${x},${y+h} L${x},${y+r} Q${x},${y} ${x+r},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h} Z`;
+  return `M${x},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h-r} Q${x+w},${y+h} ${x+w-r},${y+h} L${x},${y+h} Z`;}
+const tip=document.getElementById("tip");
+function mv(e){const r=tip.getBoundingClientRect();let x=e.clientX+15,y=e.clientY+15;
+  if(x+r.width>innerWidth-8)x=e.clientX-r.width-15;
+  if(y+r.height>innerHeight-8)y=e.clientY-r.height-15;tip.style.left=x+"px";tip.style.top=y+"px";}
+function tie(n,html){n.addEventListener("mouseenter",e=>{tip.innerHTML=html;tip.style.opacity="1";mv(e);});
+  n.addEventListener("mousemove",mv);n.addEventListener("mouseleave",()=>tip.style.opacity="0");}
+const trows=(t,p)=>`<span class="k2">${t}</span>`+p.map(([k,v])=>`<span class="r"><span>${k}</span><span>${v}</span></span>`).join("");
+
+/* ================= copy ================= */
+const NOTE={
+ Introduction:"Thin, noisy history. Buffer pooled centrally; narrow reach until velocity is real, not incentive-driven.",
+ Growth:"Repeat demand building. Push and pull together; widen the footprint as sell-through proves out.",
+ Maturity:"Predictable and high volume. Optimise for turns — this is where the capital actually sits.",
+ Decline:"Fragmenting demand. Pull only; contract the company-funded footprint, keep large dealers stocked.",
+ Exit:"Phase-out. Make to order from one central pool; serve firm demand and get to zero."};
+const MODE={Introduction:"Pull · central",Growth:"Push + Pull",Maturity:"Push",Decline:"Pull",Exit:"MTO · central"};
+const MET={Introduction:["Launch fill rate · time-to-stable-forecast","Forecast error (MAPE)"],
+ Growth:["Footprint-expansion rate + service","Lost sales"],
+ Maturity:["Inventory turns / GMROI","Fill-rate floor"],
+ Decline:["Slow-moving % · weeks of cover","Service at retained nodes"],
+ Exit:["Write-off vs plan · residual vs peak","Days to zero out"]};
+
+/* ================= derived ================= */
+function model(){
+  const M=compute();
+  M.view=M.rows.filter(r=>UI.stages.has(r.stage) &&
+    (!UI.q || (r.name+" "+r.cat+" "+r.id).toLowerCase().includes(UI.q.toLowerCase())));
+  M.rows.forEach(r=>{
+    r.radar = r.shelf<=18;                       /* Radar is scoped to short-shelf specialty lines */
+    r.reasons=[];
+    if(r.radar && r.score>=55) r.reasons.push(["Radar · pre-empt","crit"]);
+    else if(r.radar && r.score>=35) r.reasons.push(["Radar · watch","warn"]);
+    if((r.stage==="Decline"||r.stage==="Exit") && r.tier==="C") r.reasons.push(["Low-value tail","warn"]);
+    if(r.stage==="Exit" && r.po==="Y") r.reasons.push(["Phase-out flagged","crit"]);
+  });
+  M.alerts=M.rows.filter(r=>r.reasons.length);
+  M.edits=STAGES.reduce((n,st)=>n+["sl","lt","cyc","rol","reach"]
+    .filter(f=>Math.abs(S.pol[st][f]-DEFAULTS.pol[st][f])>1e-9).length,0);
+  return M;
+}
+
+/* ================= chrome ================= */
+const VIEWS=[
+  ["overview","Portfolio","Where the capital sits and what the policy releases"],
+  ["classify","Classification","How each product lands in a stage — and what moves it"],
+  ["policy","Policy &amp; norms","Set the levers; safety stock re-solves from z × σ × √LT"],
+  ["watch","Watchlist","Products that need a decision this cycle"]
+];
+const ICONS={
+ overview:'<path d="M2 12h4l2.5-7 3 12L14 8l2 4h2"/>',
+ classify:'<circle cx="6" cy="13" r="2.4"/><circle cx="13.5" cy="6.5" r="2.4"/><path d="M2 17.5h16M2 17.5V3"/>',
+ policy:'<path d="M3 5h14M3 10h14M3 15h9"/><circle cx="14" cy="15" r="2"/>',
+ watch:'<path d="M10 3l7.5 13.5H2.5L10 3z"/><path d="M10 8.5v3.5M10 14.2v.4"/>'};
+
+function renderNav(M){
+  const counts={overview:M.rows.length,classify:M.rows.length,policy:M.edits||"",watch:M.alerts.length};
+  document.getElementById("nav").innerHTML=`<p>Console</p>`+VIEWS.map(([id,label])=>
+    `<button class="nv" data-v="${id}" ${UI.view===id?'aria-current="page"':""}>
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" stroke-linejoin="round">${ICONS[id]}</svg>
+      ${label}<span class="ct">${counts[id]!==""?counts[id]:""}</span></button>`).join("");
+  const v=VIEWS.find(x=>x[0]===UI.view);
+  document.getElementById("vtitle").innerHTML=`${v[1]}<em>${v[2]}</em>`;
+}
+
+function renderKPI(M){
+  const dCov=M.blended-S.base;
+  const K=[
+   {l:"Working capital released",v:CR(M.released/100),u:"Cr",c:"var(--good)",
+    d:`<b>${(M.pct*100).toFixed(1)}%</b> of the FG buffer`},
+   {l:"Blended cover",v:f1(M.blended),u:"days",c:"var(--navy)",
+    d:`<b class="${dCov<0?"up":"dn"}">${dCov<0?"−":"+"}${Math.abs(dCov).toFixed(1)}d</b> vs ${S.base}d flat`},
+   {l:"Structural, baseline-proof",v:CR(M.parts.tail),u:"Cr",c:"var(--accent)",
+    d:"tail + reach, holds 28–45d"},
+   {l:"Reinvested into launches",v:CR(-M.parts.invest),u:"Cr",c:HEXC.Introduction,
+    d:`${M.byStage[0].n+M.byStage[1].n} SKUs in Intro + Growth`},
+   {l:"Buffer spread",v:f1(M.spreadCover),u:"×",c:"var(--ink)",
+    d:`Intro ${f1(M.byStage[0].cover)}d vs Mat ${f1(M.byStage[2].cover)}d`},
+   {l:"Open alerts",v:M.alerts.length,u:"SKUs",c:M.alerts.length?"var(--crit)":"var(--good)",
+    d:M.alerts.length?"needing a decision now":"nothing flagged"}
+  ];
+  document.getElementById("kstrip").innerHTML=K.map(k=>
+    `<div class="k"><div class="l">${k.l}</div>
+      <div class="v" style="color:${k.c}">${k.v}<u>${k.u}</u></div>
+      <div class="d">${k.d}</div></div>`).join("");
+}
+
+function chips(M){
+  const c=STAGES.map(st=>{const n=M.rows.filter(r=>r.stage===st).length;
+    return `<button class="chip" data-st="${st}" aria-pressed="${UI.stages.has(st)}"
+      style="border-color:${UI.stages.has(st)?SVAR(st):"var(--rule-2)"}">
+      <i style="background:${SVAR(st)}"></i>${st}<span class="n">${n}</span></button>`;}).join("");
+  const all=UI.stages.size===5&&!UI.q;
+  return `<div class="chips"><span class="lb">Filter</span>${c}
+    ${all?"":'<button class="chip clear" data-st="__all">Clear filters</button>'}</div>`;
+}
+
+/* ================= charts ================= */
+function chCapital(M){                       /* grouped: today vs proposed, per stage */
+  const W=560,H=232,L=96,R=58,T=26,B=26;
+  const mx=Math.max(...M.byStage.map(b=>Math.max(b.inv,b.baseInv)))*1.1||1;
+  const X=v=>L+v/mx*(W-L-R), s=svg(W,H);
+  el("rect",{x:L,y:6,width:9,height:9,rx:2,fill:"var(--rule-2)"},s);
+  tx(s,L+13,14,"today, one flat norm",{"font-size":10.5,fill:"var(--muted)"});
+  el("rect",{x:L+130,y:6,width:9,height:9,rx:2,fill:"var(--navy)"},s);
+  tx(s,L+143,14,"proposed policy",{"font-size":10.5,fill:"var(--navy)","font-weight":600});
+  const gh=(H-T-B)/5;
+  M.byStage.forEach((b,i)=>{
+    const y=T+i*gh;
+    const g=el("path",{d:bar(L,y+3,Math.max(X(b.baseInv)-L,2),11,3,"r"),fill:"var(--rule-2)"},s);
+    tie(g,trows(b.stage+" — today",[["Buffer value","₹"+f0(b.baseInv)+" L"],["Cover",S.base+" days"]]));
+    const p=el("path",{d:bar(L,y+17,Math.max(X(b.inv)-L,2),13,3,"r"),fill:HEXC[b.stage]},s);
+    tie(p,trows(b.stage+" — proposed",[["Buffer value","₹"+f0(b.inv)+" L"],["Cover",f1(b.cover)+" days"],
+      ["SKUs",b.n],[b.released>=0?"Frees":"Invests","₹"+f1(Math.abs(b.released)/100)+" Cr"]]));
+    tx(s,L-9,y+21,b.stage,{"text-anchor":"end","font-size":11.5,fill:"var(--ink-2)"});
+    const d=b.released/100;
+    tx(s,Math.max(X(b.baseInv),X(b.inv))+8,y+21,(d>=0?"+":"−")+"₹"+Math.abs(d).toFixed(1)+" Cr",
+      {"font-size":11.5,"font-weight":600,fill:d>=0?"var(--good)":HEXC[b.stage]});
+  });
+  return s;
+}
+function chWaterfall(M){
+  const its=[["Mature core",M.parts.maturity,HEXC.Maturity],["Decline + Exit tail",M.parts.tail,HEXC.Decline],
+             ["Into launches",M.parts.invest,HEXC.Introduction],["Net released",M.released/100,"#1B7A40"]];
+  const W=460,H=196,L=118,R=56,T=8,B=22;
+  const mx=Math.max(...its.map(a=>Math.abs(a[1])))*1.2||1;
+  const x0=L+(W-L-R)*0.24, sc=(W-L-R)*0.72/mx, s=svg(W,H);
+  el("line",{x1:x0,y1:T,x2:x0,y2:H-B,stroke:"var(--rule-2)","stroke-width":1},s);
+  const bh=28, gp=(H-T-B-4*bh)/3;
+  its.forEach(([k,v,c],i)=>{
+    const y=T+i*(bh+gp), w=Math.max(Math.abs(v)*sc,2), x=v>=0?x0:x0-w, net=i===3;
+    if(net)el("line",{x1:L-10,y1:y-gp/2,x2:W-4,y2:y-gp/2,stroke:"var(--rule)","stroke-width":1},s);
+    const p=el("path",{d:bar(x,y,w,bh,4,v>=0?"r":"l"),fill:c},s);
+    tie(p,trows(k,[["Amount","₹"+f1(Math.abs(v))+" Cr"],
+      ["Direction",net?"net of reinvestment":v>=0?"capital freed":"capital invested"]]));
+    tx(s,L-10,y+bh/2+4,k,{"text-anchor":"end","font-size":11.5,fill:net?"var(--ink)":"var(--ink-2)",
+      "font-weight":net?600:400});
+    tx(s,v>=0?x+w+7:x-7,y+bh/2+4.5,(v>=0?"+":"−")+"₹"+Math.abs(v).toFixed(1),
+      {"text-anchor":v>=0?"start":"end","font-size":12.5,"font-weight":700,fill:"var(--ink)"});
+  });
+  return s;
+}
+function chSens(M){
+  const W=460,H=190,L=48,R=16,T=16,B=32;
+  const ys=M.sens.map(p=>p.cr), y0=Math.min(0,...ys), y1=Math.max(...ys)*1.1;
+  const X=d=>L+(d-28)/17*(W-L-R), Y=v=>H-B-(v-y0)/((y1-y0)||1)*(H-T-B), s=svg(W,H);
+  for(let i=0;i<=3;i++){const v=y0+(y1-y0)*i/3;
+    el("line",{x1:L,y1:Y(v),x2:W-R,y2:Y(v),stroke:"var(--rule)","stroke-width":1},s);
+    tx(s,L-7,Y(v)+3.5,"₹"+v.toFixed(0),{"text-anchor":"end","font-size":10,fill:"var(--muted)"});}
+  el("path",{d:`M${X(28)},${Y(y0)} `+M.sens.map(p=>`L${X(p.d)},${Y(p.cr)}`).join(" ")+` L${X(45)},${Y(y0)} Z`,
+    fill:"var(--navy)",opacity:.08},s);
+  el("path",{d:M.sens.map((p,i)=>(i?"L":"M")+X(p.d)+","+Y(p.cr)).join(" "),fill:"none",
+    stroke:"var(--navy)","stroke-width":2},s);
+  [28,32,36,40,45].forEach(d=>tx(s,X(d),H-16,d+"d",{"text-anchor":"middle","font-size":10,fill:"var(--muted)"}));
+  tx(s,(L+W-R)/2,H-3,"assumed flat cover today",{"text-anchor":"middle","font-size":10,fill:"var(--faint)"});
+  const c=M.sens.find(p=>p.d===S.base)||M.sens[0];
+  el("line",{x1:X(c.d),y1:T,x2:X(c.d),y2:H-B,stroke:"var(--accent)","stroke-width":1.4,"stroke-dasharray":"3 3"},s);
+  el("circle",{cx:X(c.d),cy:Y(c.cr),r:5.5,fill:"var(--accent)",stroke:"#fff","stroke-width":2},s);
+  tx(s,Math.max(X(c.d)-9,L+34),Y(c.cr)-13,"₹"+c.cr.toFixed(1)+" Cr",
+    {"text-anchor":"end","font-size":13,"font-weight":700,fill:"var(--accent)"});
+  M.sens.forEach(p=>{const h=el("rect",{x:X(p.d)-8,y:T,width:16,height:H-T-B,fill:"transparent"},s);
+    tie(h,trows(p.d+"-day baseline",[["Released","₹"+p.cr.toFixed(1)+" Cr"],
+      ["Share of buffer",(p.cr*100/(p.d*M.dailyVal)*100).toFixed(1)+"%"]]));});
+  return s;
+}
+function chScatter(M){
+  const W=620,H=310,L=52,R=18,T=16,B=42;
+  const gs=M.rows.map(r=>r.growth), cvs=M.rows.map(r=>r.cv);
+  const x0=Math.min(-.24,...gs)-.03, x1=Math.max(.34,...gs)+.03, y1=Math.max(.32,...cvs)+.02;
+  const X=g=>L+(g-x0)/(x1-x0)*(W-L-R), Y=c=>H-B-c/y1*(H-T-B);
+  const mxi=Math.max(...M.rows.map(r=>r.inv));
+  const s=svg(W,H);
+  [0,.1,.2,.3].filter(v=>v<=y1).forEach(v=>{el("line",{x1:L,y1:Y(v),x2:W-R,y2:Y(v),stroke:"var(--rule)","stroke-width":1},s);
+    tx(s,L-7,Y(v)+3.5,v.toFixed(2),{"text-anchor":"end","font-size":10,fill:"var(--muted)"});});
+  [[S.th.eg,"exit"],[S.th.dg,"decline"],[S.th.ig,"intro"],[S.th.gg,"growth"]].forEach(([g,l],i)=>{
+    if(g<x0||g>x1)return;
+    el("line",{x1:X(g),y1:T,x2:X(g),y2:H-B,stroke:"var(--rule-2)","stroke-width":1,"stroke-dasharray":"2 4"},s);
+    tx(s,X(g),T+(i%2?18:8),l,{"text-anchor":"middle","font-size":9.5,fill:"var(--muted)"});});
+  el("line",{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:"var(--rule-2)","stroke-width":1},s);
+  [-.2,-.1,0,.1,.2,.3].filter(v=>v>=x0&&v<=x1).forEach(v=>
+    tx(s,X(v),H-B+14,pc(v),{"text-anchor":"middle","font-size":10,fill:"var(--muted)"}));
+  tx(s,(L+W-R)/2,H-8,"6-month growth  (last 6 mo vs prior 6 mo)",{"text-anchor":"middle","font-size":10.5,fill:"var(--faint)"});
+  tx(s,13,(T+H-B)/2,"demand volatility (CV)",{"text-anchor":"middle","font-size":10.5,fill:"var(--faint)",
+    transform:`rotate(-90 13 ${(T+H-B)/2})`});
+  M.rows.forEach(r=>{
+    const on=M.view.includes(r), rad=4+Math.sqrt(r.inv/mxi)*13;
+    const c=el("circle",{cx:X(r.growth),cy:Y(r.cv),r:rad,fill:HEXC[r.stage],
+      "fill-opacity":on?.8:.13,stroke:on?"#fff":"transparent","stroke-width":2,
+      style:"cursor:pointer"},s);
+    tie(c,trows(r.name,[["Stage",r.stage],["6-mo growth",pc(r.growth)],["CV",f2(r.cv)],
+      ["Velocity",f0(r.velocity)+" KL/mo"],["Buffer","₹"+f1(r.inv)+" L"]]));
+    c.addEventListener("click",()=>openSKU(r.id));
+  });
+  return s;
+}
+function chCover(M){
+  const W=460,H=196,L=92,R=52,T=22,B=20;
+  const mx=Math.max(S.base,...M.byStage.map(b=>b.cover))*1.14;
+  const X=v=>L+v/mx*(W-L-R), s=svg(W,H), gh=(H-T-B)/5;
+  M.byStage.forEach((b,i)=>{
+    const y=T+i*gh+4;
+    const p=el("path",{d:bar(L,y,Math.max(X(b.cover)-L,2),Math.min(gh-9,20),4,"r"),fill:HEXC[b.stage]},s);
+    tie(p,trows(b.stage,[["Safety stock",f1(b.ssDays)+" d"],["Cycle ÷ 2",f1(S.pol[b.stage].cyc/2)+" d"],
+      ["Reorder level",S.pol[b.stage].rol+" d"],["Total cover",f1(b.cover)+" d"]]));
+    tx(s,L-8,y+14,b.stage,{"text-anchor":"end","font-size":11,fill:"var(--ink-2)"});
+    tx(s,X(b.cover)+7,y+14.5,f1(b.cover),{"font-size":12,"font-weight":700,fill:"var(--ink)"});
+  });
+  el("line",{x1:X(S.base),y1:T-8,x2:X(S.base),y2:H-B+2,stroke:"var(--ink)","stroke-width":1.4,"stroke-dasharray":"4 3"},s);
+  tx(s,X(S.base),T-12,"today "+S.base+"d",{"text-anchor":"middle","font-size":10.5,fill:"var(--ink)","font-weight":600});
+  return s;
+}
+function chRadar(M){
+  const list=M.rows.filter(r=>r.shelf<=18).sort((a,b)=>b.score-a.score);
+  if(!list.length) return svg(10,10);
+  const W=560,H=28+list.length*27,L=196,R=54,T=24;
+  const X=v=>L+v/100*(W-L-R), s=svg(W,H);
+  [[0,35,"var(--goodt)"],[35,55,"var(--warnt)"],[55,100,"var(--critt)"]].forEach(([a,b,c])=>
+    el("rect",{x:X(a),y:T-6,width:X(b)-X(a),height:H-T+2,fill:c},s));
+  [["healthy",17],["watch",45],["pre-empt",77]].forEach(([l,v])=>
+    tx(s,X(v),T-11,l,{"text-anchor":"middle","font-size":9.5,fill:"var(--muted)"}));
+  list.forEach((r,i)=>{const y=T+i*27;
+    const p=el("path",{d:bar(X(0),y,Math.max(X(r.score)-X(0),2),16,4,"r"),
+      fill:r.score>=55?"var(--crit)":r.score>=35?"var(--warn)":"var(--good)",style:"cursor:pointer"},s);
+    tie(p,trows(r.name,[["Decline-risk",f1(r.score)+" / 100"],["Flag",r.flag],["Stage",r.stage],
+      ["Shelf life",r.shelf+" mo"],["6-mo growth",pc(r.growth)],["Decelerating",r.decel?"yes":"no"]]));
+    p.addEventListener("click",()=>openSKU(r.id));
+    tx(s,L-8,y+12,r.name.length>28?r.name.slice(0,27)+"…":r.name,
+      {"text-anchor":"end","font-size":11,fill:"var(--ink-2)"});
+    tx(s,X(r.score)+7,y+12.5,f0(r.score),{"font-size":11.5,"font-weight":700,fill:"var(--ink)"});});
+  return s;
+}
+function spark(v,c,W=70,H=18){
+  const mn=Math.min(...v),mx=Math.max(...v);
+  const X=i=>i/(v.length-1)*W, Y=n=>H-2-((n-mn)/((mx-mn)||1))*(H-4);
+  const d=v.map((n,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(n).toFixed(1)).join(" ");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="vertical-align:middle">
+    <path d="${d} L${W},${H} L0,${H} Z" fill="${c}" opacity=".14"/>
+    <path d="${d}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${W}" cy="${Y(v[v.length-1]).toFixed(1)}" r="2.3" fill="${c}"/></svg>`;
+}
+
+/* ================= sortable grid ================= */
+const COLS={
+ overview:[
+  ["name","Product","l",r=>`<div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.cat)}</div>`,r=>r.name],
+  ["trend","24 months","l",r=>spark(r.v,HEXC[r.stage]),r=>r.trend],
+  ["stage","Stage","l",r=>pill(r.stage),r=>IDX(r.stage)],
+  ["cover","Cover","",r=>`<b>${f1(r.cover)}</b> d`,r=>r.cover],
+  ["inv","Buffer ₹L","",r=>f0(r.inv),r=>r.inv],
+  ["released","Capital effect ₹L","",r=>`<span class="${r.released>=0?"up":"dn"}"><b>${r.released>=0?"+":"−"}${f0(Math.abs(r.released))}</b></span>`,r=>r.released]],
+ classify:[
+  ["name","Product","l",r=>`<div class="nm">${esc(r.name)}</div><div class="sub">${r.id} · ${esc(r.cat)}</div>`,r=>r.name],
+  ["trend","24 months","l",r=>spark(r.v,HEXC[r.stage]),r=>r.trend],
+  ["age","Age","",r=>r.age+" mo",r=>r.age],
+  ["velocity","Velocity","",r=>f0(r.velocity),r=>r.velocity],
+  ["growth","6-mo growth","",r=>`<span class="${r.growth>=0?"up":"dn"}"><b>${pc(r.growth)}</b></span>`,r=>r.growth],
+  ["cv","CV","",r=>f2(r.cv),r=>r.cv],
+  ["shelf","Shelf","",r=>r.shelf+" mo",r=>r.shelf],
+  ["stage","Stage","l",r=>pill(r.stage)+(r.po==="Y"?' <span class="tag" style="background:var(--sunk);color:var(--muted)">flagged</span>':""),r=>IDX(r.stage)]],
+ policy:[
+  ["name","Product","l",r=>`<div class="nm">${esc(r.name)}</div>`,r=>r.name],
+  ["stage","Stage","l",r=>pill(r.stage),r=>IDX(r.stage)],
+  ["z","z","",r=>f2(r.z),r=>r.z],
+  ["sigma","σ KL","",r=>f1(r.sigma),r=>r.sigma],
+  ["ss","SS KL","",r=>f1(r.ss),r=>r.ss],
+  ["ssDays","SS days","",r=>f1(r.ssDays),r=>r.ssDays],
+  ["cyc","Cyc÷2","",r=>f1(S.pol[r.stage].cyc/2),r=>S.pol[r.stage].cyc],
+  ["rol","ROL","",r=>S.pol[r.stage].rol,r=>S.pol[r.stage].rol],
+  ["cover","Cover","",r=>`<b>${f1(r.cover)}</b>`,r=>r.cover],
+  ["released","Capital ₹L","",r=>`<span class="${r.released>=0?"up":"dn"}">${r.released>=0?"+":"−"}${f0(Math.abs(r.released))}</span>`,r=>r.released]],
+ watch:[
+  ["name","Product","l",r=>`<div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.cat)}</div>`,r=>r.name],
+  ["stage","Stage","l",r=>pill(r.stage),r=>IDX(r.stage)],
+  ["shelf","Shelf","",r=>r.shelf+" mo",r=>r.shelf],
+  ["score","Radar","",r=>r.radar?(()=>{const c=r.score>=55?"crit":r.score>=35?"warn":"good";
+      return `<span class="tag" style="background:var(--${c}t);color:var(--${c})">${f0(r.score)}</span>`;})()
+      :'<span class="tag" style="background:var(--sunk);color:var(--faint)">n/a</span>',r=>r.radar?r.score:-1],
+  ["why","Why flagged","l",r=>r.reasons.map(([t,c])=>
+      `<span class="tag" style="background:var(--${c}t);color:var(--${c})">${t}</span>`).join(" "),
+      r=>r.reasons.map(x=>x[0]).join()],
+  ["tier","Value","",r=>{const c=r.tier==="A"?"good":r.tier==="B"?"warn":"";
+      return `<span class="tag" style="background:${c?`var(--${c}t)`:"var(--sunk)"};color:${c?`var(--${c})`:"var(--muted)"}">Tier ${r.tier}</span>`;},r=>r.tier],
+  ["action","Recommended action","l",r=>`<span style="color:var(--ink-2)">${ACTION(r)}</span>`,r=>r.action]]
+};
+function ACTION(r){
+  if(r.radar && r.score>=55)
+    return "Freeze forward deployment, pull the buffer central, size a last-time-buy";
+  if(r.stage==="Exit") return r.tier==="A"?"Central pool — harvest the margin":"Delist with a last-time-buy";
+  if(r.stage==="Decline") return r.tier==="A"?"Retain and centralise"
+    :r.tier==="B"?"Large-dealer channel only, cut depot stocking":"Rationalise — plan the delist";
+  if(r.radar && r.score>=35) return "Tighten review to monthly, hold reach flat";
+  return "No action this cycle";
+}
+function grid(M,view){
+  const cols=COLS[view];
+  const col=cols.find(c=>c[0]===UI.sort.k)||cols[0];
+  const rows=[...(view==="watch"?M.alerts.filter(r=>M.view.includes(r)):M.view)]
+    .sort((a,b)=>{const x=col[4](a),y=col[4](b);
+      return (typeof x==="string"?x.localeCompare(y):x-y)*UI.sort.d;});
+  if(!rows.length) return `<div class="empty">Nothing matches the current filter.</div>`;
+  return `<div class="tw"><table><thead><tr>`+cols.map(c=>
+    `<th class="${c[2]}" data-k="${c[0]}" ${UI.sort.k===c[0]?'data-on="1"':""}>${c[1]}<span class="ar">${UI.sort.d>0?"▲":"▼"}</span></th>`).join("")+
+    `</tr></thead><tbody>`+rows.map(r=>`<tr data-id="${r.id}" ${UI.sku===r.id?'class="sel"':""}>`+
+    cols.map(c=>`<td class="${c[2]}">${c[3](r)}</td>`).join("")+`</tr>`).join("")+
+    `</tbody></table></div>`;
+}
+const card=(t,sub,body,foot,rt)=>`<section class="card">
+  <header><div><h3>${t}</h3>${sub?`<p>${sub}</p>`:""}</div>${rt?`<span class="rt">${rt}</span>`:""}</header>
+  <div class="body">${body}</div>${foot?`<div class="foot">${foot}</div>`:""}</section>`;
+
+/* ================= views ================= */
+function vOverview(M){
+  const w=document.getElementById("work");
+  w.innerHTML=chips(M)+
+   `<div class="grid3">
+      ${card("Capital by stage","Grey is today&rsquo;s flat norm; colour is the proposed policy.","<div id='c1'></div>",
+        `The mature core carries <b>${((M.byStage[2].inv/M.inv)*100).toFixed(0)}%</b> of the proposed buffer on
+         <b>${M.byStage[2].n}</b> SKUs — the most predictable products in the book.`,"₹ lakh")}
+      ${card("Where it comes from","","<div id='c2'></div>",
+        `<b>${CR(M.parts.tail)} Cr</b> of the release is structural — pulling company-funded stock out of depots
+         and small dealers, while large dealers keep the tail available on their own capital.`,"₹ crore")}
+    </div>
+    <div class="grid3" style="margin-top:14px">
+      ${card("Cover ladder","Days of finished-goods cover by stage.","<div id='c3'></div>",
+        `Spread of <b>${f1(M.spreadCover)}×</b> Intro to Maturity, earned by a <b>${f1(M.spreadCV)}×</b>
+         spread in demand volatility — not chosen by hand.`,"days")}
+      ${card("Baseline sensitivity","The headline moves with what we assume today&rsquo;s norm to be.","<div id='c4'></div>",
+        `Range <b>${CR(M.sens[0].cr)}–${CR(M.sens[M.sens.length-1].cr)} Cr</b> across 28–45 days.
+         Lead with the structural core, not the headline.`,"₹ crore")}
+    </div>
+    <div style="margin-top:14px">${card("All products",
+      "Click any row for the full signal trace and the buffer calculation.",grid(M,"overview"),"",
+      `${M.view.length} of ${M.rows.length} shown`)}</div>`;
+  document.getElementById("c1").appendChild(chCapital(M));
+  document.getElementById("c2").appendChild(chWaterfall(M));
+  document.getElementById("c3").appendChild(chCover(M));
+  document.getElementById("c4").appendChild(chSens(M));
+}
+
+function vClassify(M){
+  const rr=(id,lab,val,min,max,step,fmt)=>
+    `<div class="rr"><label for="${id}">${lab}</label><output id="${id}o">${fmt(val)}</output>
+     <input type="range" id="${id}" data-th="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+  const P=v=>(v>=0?"+":"−")+Math.abs(v)+"%";
+  document.getElementById("work").innerHTML=chips(M)+
+   `<div class="grid3">
+      ${card("The classifier, running",
+        "Bubble area is buffer value. Move a threshold and watch products change stage.",
+        "<div id='c1'></div>",
+        `A SKU only changes stage once the signal <b>holds two periods</b> (hysteresis).
+         The working unit is <b>SKU × region</b> — a product can be Introduction in a new state while Mature nationally.`)}
+      ${card("Stage rules","Live thresholds. Everything on this page re-solves as you move them.",
+        rr("t-age","Introduction · max age",S.th.age,3,24,1,v=>v+" mo")+
+        rr("t-ig","Introduction · min growth",Math.round(S.th.ig*100),0,30,1,P)+
+        rr("t-gg","Growth · min growth",Math.round(S.th.gg*100),2,40,1,P)+
+        rr("t-dg","Decline · max growth",Math.round(S.th.dg*100),-30,0,1,P)+
+        rr("t-eg","Exit · max growth",Math.round(S.th.eg*100),-40,0,1,P)+
+        rr("t-ev","Exit · velocity floor",S.th.ev,0,300,5,v=>v+" KL"),
+        STAGES.map(st=>`${st.slice(0,5)} <b style="color:${SVAR(st)}">${M.byStage[IDX(st)-1].n}</b>`).join(" &middot; "))}
+    </div>
+    <div style="margin-top:14px">${card("Signals, per product",
+      "Read from data the planning system already holds — age, momentum, volatility, breadth.",
+      grid(M,"classify"),"",`${M.view.length} of ${M.rows.length} shown`)}</div>`;
+  document.getElementById("c1").appendChild(chScatter(M));
+}
+
+function vPolicy(M){
+  const F=[["sl","SL %"],["lt","LT d"],["cyc","Cycle d"],["rol","ROL d"],["reach","Reach"]];
+  const tbl=`<table class="pol"><thead><tr><th class="l">Stage</th>`+
+    F.map(f=>`<th>${f[1]}</th>`).join("")+
+    `<th>z</th><th>SS d</th><th>Cover</th><th class="l">Mode</th></tr></thead><tbody>`+
+    M.byStage.map(b=>{const p=S.pol[b.stage];
+      return `<tr><td class="l"><span class="pill" style="background:${STINT(b.stage)};color:${SVAR(b.stage)}">
+        <i style="background:${SVAR(b.stage)}"></i>${b.stage}</span></td>`+
+        F.map(([f])=>{const v=f==="sl"?Math.round(p.sl*100):p[f];
+          const chg=Math.abs(p[f]-DEFAULTS.pol[b.stage][f])>1e-9;
+          return `<td><input type="number" class="${chg?"chg":""}" data-st="${b.stage}" data-f="${f}"
+            value="${v}" step="1" aria-label="${b.stage} ${f}"></td>`;}).join("")+
+        `<td class="der">${f2(normsinv(p.sl))}</td><td class="der">${f1(b.ssDays)}</td>
+         <td class="der" style="color:${SVAR(b.stage)}">${f1(b.cover)}</td>
+         <td class="l" style="color:var(--muted);font-size:11.5px">${MODE[b.stage]}</td></tr>`;}).join("")+
+    `</tbody></table>`;
+  const met=`<table class="pol"><thead><tr><th class="l">Stage</th><th class="l">Primary metric</th>
+    <th class="l">Guardrail</th></tr></thead><tbody>`+
+    STAGES.map(st=>`<tr><td class="l"><span class="pill" style="background:${STINT(st)};color:${SVAR(st)}">
+      <i style="background:${SVAR(st)}"></i>${st}</span></td>
+      <td class="l">${MET[st][0]}</td><td class="l" style="color:var(--muted)">${MET[st][1]}</td></tr>`).join("")+
+    `</tbody></table>`;
+  document.getElementById("work").innerHTML=chips(M)+
+   `<div class="grid3">
+      ${card("Stage policy — editable",
+        "White cells are yours to set. z, safety stock and cover are derived, never typed.",tbl,
+        `<b>SS = z × σ × √LT</b>, then <b>cover = SS days + cycle ÷ 2 + reorder level</b> — the case brief&rsquo;s own three norms.
+         ${M.edits?`<span style="color:var(--accent)"> ${M.edits} cell${M.edits>1?"s":""} changed from the proposed policy.</span>`:""}`)}
+      ${card("How we would know it is working","One metric family, re-weighted by stage.",met,
+        `Rolls into blended inventory days (<b>${f1(M.blended)}</b> vs ${S.base}), blended fill rate,
+         slow-moving share, and working capital redeployed.`)}
+    </div>
+    <div style="margin-top:14px">${card("Norm, per product","Every row re-solves the moment a lever above changes.",
+      grid(M,"policy"),"",`${M.view.length} of ${M.rows.length} shown`)}</div>`;
+}
+
+function vWatch(M){
+  const n=M.alerts.length;
+  const pre=M.alerts.filter(r=>r.radar&&r.score>=55).length;
+  const wat=M.alerts.filter(r=>r.radar&&r.score>=35&&r.score<55).length;
+  const tail=M.alerts.filter(r=>(r.stage==="Decline"||r.stage==="Exit")&&r.tier==="C").length;
+  document.getElementById("work").innerHTML=chips(M)+
+   `<div class="grid3">
+      ${card("Lifecycle Radar","Scored one cycle ahead of the trailing rules — scoped to products with 18 months of shelf life or less, where a write-off is physical rather than only financial.",
+        "<div id='c1'></div>",
+        `Score = ${f2(S.w.mom)}·momentum + ${f2(S.w.vol)}·volatility + ${f2(S.w.dec)}·deceleration + ${f2(S.w.shf)}·shelf urgency.
+         Rules stay the default; the Radar flags, a planner confirms.`,
+        `${M.rows.filter(r=>r.shelf<=18).length} specialty SKUs`)}
+      ${card("This cycle","",
+        `<div class="kv" style="font-size:13px">
+          <dt>Radar · pre-empt now</dt><dd style="color:var(--crit)">${pre}</dd>
+          <dt>Radar · on watch</dt><dd style="color:var(--warn)">${wat}</dd>
+          <dt>Low-value tail to rationalise</dt><dd>${tail}</dd>
+          <dt>Capital in the flagged set</dt><dd>₹${f0(M.alerts.reduce((s,r)=>s+r.inv,0))} L</dd>
+         </div>`,
+        n?`With roughly four years of shelf life on mainstream paint the risk is capital lock-up, not spoilage —
+           so shelf-life exposure is scoped to the genuine 6–12-month specialty lines only.`
+         :`Nothing is flagged at the current thresholds.`)}
+    </div>
+    <div style="margin-top:14px">${card("Decision queue",
+      "Every product needing a call this cycle, with the recommended action.",grid(M,"watch"),"",
+      `${n} flagged`)}</div>`;
+  const h=document.getElementById("c1"); if(h) h.appendChild(chRadar(M));
+}
+
+const RENDER={overview:vOverview,classify:vClassify,policy:vPolicy,watch:vWatch};
+
+/* ================= drawer ================= */
+function volChart(r){
+  const W=420,H=120,L=30,R=8,T=10,B=20;
+  const mx=Math.max(...r.v)*1.08, X=i=>L+i/23*(W-L-R), Y=v=>H-B-v/mx*(H-T-B);
+  const s=svg(W,H);
+  el("rect",{x:X(12)-4,y:T,width:X(17)-X(12)+8,height:H-T-B,fill:"var(--sunk)"},s);
+  el("rect",{x:X(18)-4,y:T,width:X(23)-X(18)+8,height:H-T-B,fill:HEXC[r.stage],opacity:.09},s);
+  tx(s,(X(12)+X(17))/2,T+9,"prior 6",{"text-anchor":"middle","font-size":8.5,fill:"var(--faint)"});
+  tx(s,(X(18)+X(23))/2,T+9,"last 6",{"text-anchor":"middle","font-size":8.5,fill:HEXC[r.stage]});
+  el("line",{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:"var(--rule-2)","stroke-width":1},s);
+  tx(s,L-5,H-B+3,"0",{"text-anchor":"end","font-size":9,fill:"var(--muted)"});
+  tx(s,L-5,T+8,f0(mx),{"text-anchor":"end","font-size":9,fill:"var(--muted)"});
+  const bw=(W-L-R)/24*0.66;
+  r.v.forEach((v,i)=>{const x=X(i)-bw/2,y=Y(v);
+    const p=el("path",{d:bar(x,y,bw,H-B-y,2,"u"),fill:HEXC[r.stage],opacity:i>=18?.95:i>=12?.55:.25},s);
+    tie(p,trows("Month "+(i+1),[["Volume",f0(v)+" KL"]]));});
+  tx(s,L,H-6,"month 1",{"font-size":9,fill:"var(--faint)"});
+  tx(s,W-R,H-6,"24",{"text-anchor":"end","font-size":9,fill:"var(--faint)"});
+  return s;
+}
+function openSKU(id){
+  UI.sku=id; const M=model(); const r=M.rows.find(x=>x.id===id); if(!r) return;
+  const p=S.pol[r.stage], tierC=r.tier==="A"?"good":r.tier==="B"?"warn":"";
+  const flagC=r.flag==="Pre-empt"?"crit":r.flag==="Watch"?"warn":"good";
+  document.getElementById("dhead").innerHTML=
+    `<button class="x" id="dx" aria-label="Close">×</button>
+     <h2>${esc(r.name)}</h2>
+     <div class="meta">${r.id} &middot; ${esc(r.cat)} &middot; launched ${r.launch}</div>
+     <div class="tags">${pill(r.stage)}
+       <span class="tag" style="background:${tierC?`var(--${tierC}t)`:"var(--sunk)"};color:${tierC?`var(--${tierC})`:"var(--muted)"}">Tier ${r.tier}</span>
+       ${r.shelf<=18?`<span class="tag" style="background:var(--${flagC}t);color:var(--${flagC})">Radar ${f0(r.score)} · ${r.flag}</span>`:
+         `<span class="tag" style="background:var(--sunk);color:var(--muted)">${r.shelf}-month shelf life</span>`}
+       ${r.po==="Y"?'<span class="tag" style="background:var(--critt);color:var(--crit)">phase-out flag</span>':""}
+     </div>`;
+  document.getElementById("dbody").innerHTML=
+    `<div class="dsec"><h4>Volume, last 24 months (KL)</h4><div id="dv"></div></div>
+     <div class="dsec"><h4>Signals that set the stage</h4>
+       <dl class="kv">
+         <dt>Age since launch</dt><dd>${r.age} mo</dd>
+         <dt>Velocity, trailing 12 mo</dt><dd>${f0(r.velocity)} KL/mo</dd>
+         <dt>Growth, last 6 vs prior 6</dt><dd class="${r.growth>=0?"up":"dn"}">${pc(r.growth)}</dd>
+         <dt>Demand volatility (CV)</dt><dd>${f2(r.cv)}</dd>
+         <dt>Trend per month</dt><dd>${(r.trend*100).toFixed(1)}%</dd>
+         <dt>Shelf life</dt><dd>${r.shelf} mo</dd>
+       </dl></div>
+     <div class="dsec"><h4>How the buffer is calculated</h4>
+       <div class="calc">
+         z <span class="op">(from ${(p.sl*100).toFixed(0)}% service)</span> = <span class="rs">${f2(r.z)}</span><br>
+         σ <span class="op">(CV × velocity)</span> = <span class="rs">${f1(r.sigma)}</span> KL<br>
+         √LT <span class="op">(${p.lt}-day lead time)</span> = <span class="rs">${Math.sqrt(p.lt/30).toFixed(2)}</span><br>
+         <span class="op">SS = z × σ × √LT =</span> <span class="rs">${f1(r.ss)} KL</span> = ${f1(r.ssDays)} days<br>
+         <span class="op">+ cycle ÷ 2 =</span> ${f1(p.cyc/2)} d &nbsp;<span class="op">+ reorder level =</span> ${p.rol} d
+         <div class="fin">Total cover ${f1(r.cover)} days &nbsp;·&nbsp; ${f0(r.stock)} KL &nbsp;·&nbsp; ₹${f0(r.inv)} L</div>
+       </div></div>
+     <div class="dsec"><h4>Capital effect</h4>
+       <dl class="kv">
+         <dt>At today&rsquo;s flat ${S.base}-day norm</dt><dd>₹${f0(r.baseInv)} L</dd>
+         <dt>Under the lifecycle policy</dt><dd>₹${f0(r.inv)} L</dd>
+         <dt>${r.released>=0?"Capital freed":"Capital invested"}</dt>
+         <dd class="${r.released>=0?"up":"dn"}">${r.released>=0?"+":"−"}₹${f0(Math.abs(r.released))} L</dd>
+         <dt>Gross-profit index</dt><dd>₹${f0(r.gp)}</dd>
+         <dt>Network reach</dt><dd>${p.reach} of 160 depots</dd>
+         <dt>Replenishment</dt><dd style="font-family:var(--sans);font-weight:500">${MODE[r.stage]}</dd>
+       </dl></div>
+     <div class="act"><b>Recommended action</b>${ACTION(r)}</div>
+     <p style="margin-top:14px;font-size:11.5px;color:var(--faint);line-height:1.5">${NOTE[r.stage]}</p>`;
+  document.getElementById("dv").appendChild(volChart(r));
+  document.getElementById("dx").addEventListener("click",closeSKU);
+  document.getElementById("drawer").classList.add("on");
+  document.getElementById("drawer").setAttribute("aria-hidden","false");
+  document.getElementById("scrim").classList.add("on");
+  document.querySelectorAll("tbody tr").forEach(t=>t.classList.toggle("sel",t.dataset.id===id));
+}
+function closeSKU(){
+  UI.sku=null;
+  document.getElementById("drawer").classList.remove("on");
+  document.getElementById("drawer").setAttribute("aria-hidden","true");
+  document.getElementById("scrim").classList.remove("on");
+  document.querySelectorAll("tbody tr.sel").forEach(t=>t.classList.remove("sel"));
+}
+
+/* ================= render loop ================= */
+function render(){
+  const M=model();
+  renderNav(M); renderKPI(M); RENDER[UI.view](M);
+  const rb=document.getElementById("reset");
+  rb.hidden = M.edits===0 && S.base===DEFAULTS.base &&
+    JSON.stringify(S.th)===JSON.stringify(DEFAULTS.th);
+  document.getElementById("resetn").textContent =
+    M.edits? `${M.edits} policy edit${M.edits>1?"s":""} — reset` : "Assumptions changed — reset";
+  tip.style.opacity="0";
+}
+
+/* ================= wiring ================= */
+document.getElementById("nav").addEventListener("click",e=>{
+  const b=e.target.closest("[data-v]"); if(!b)return;
+  UI.view=b.dataset.v;
+  UI.sort = UI.view==="watch"?{k:"score",d:-1}
+          : UI.view==="classify"?{k:"growth",d:-1}
+          : {k:"released",d:-1};
+  render();
+});
+const work=document.getElementById("work");
+work.addEventListener("click",e=>{
+  const chip=e.target.closest("[data-st]");
+  if(chip && chip.classList.contains("chip")){
+    const st=chip.dataset.st;
+    if(st==="__all"){UI.stages=new Set(STAGES);UI.q="";document.getElementById("q").value="";}
+    else if(UI.stages.has(st)&&UI.stages.size===5){UI.stages=new Set([st]);}
+    else if(UI.stages.has(st)){UI.stages.delete(st); if(!UI.stages.size)UI.stages=new Set(STAGES);}
+    else UI.stages.add(st);
+    render(); return;
+  }
+  const th=e.target.closest("th[data-k]");
+  if(th){const k=th.dataset.k;
+    UI.sort = UI.sort.k===k?{k,d:-UI.sort.d}:{k,d:k==="name"?1:-1};
+    render(); return;}
+  const tr=e.target.closest("tr[data-id]");
+  if(tr){openSKU(tr.dataset.id); return;}
+});
+work.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.th){
+    const id=t.dataset.th, v=parseFloat(t.value), o=document.getElementById(id+"o");
+    const P=x=>(x>=0?"+":"−")+Math.abs(x)+"%";
+    if(id==="t-age"){S.th.age=v;o.textContent=v+" mo";}
+    else if(id==="t-ev"){S.th.ev=v;o.textContent=v+" KL";}
+    else{const key={"t-ig":"ig","t-gg":"gg","t-dg":"dg","t-eg":"eg"}[id];
+      S.th[key]=v/100;o.textContent=P(v);}
+    const M=model(); renderNav(M); renderKPI(M);
+    const c=document.getElementById("c1");
+    if(c){c.innerHTML="";c.appendChild(chScatter(M));}
+    const host=document.querySelector(".card:last-child .body");
+    if(host) host.innerHTML=grid(M,"classify");
+    return;
+  }
+  if(t.dataset.f){
+    const f=t.dataset.f, v=parseFloat(t.value); if(isNaN(v))return;
+    S.pol[t.dataset.st][f]= f==="sl"?Math.min(99.5,Math.max(50,v))/100:Math.max(0,v);
+    const pos=[...document.querySelectorAll(".pol input")].indexOf(t);
+    render();
+    const again=document.querySelectorAll(".pol input")[pos]; if(again){again.focus();again.select?.();}
+  }
+});
+const bi=document.getElementById("base"), bo=document.getElementById("baseo");
+bi.addEventListener("input",()=>{S.base=+bi.value;bo.textContent=S.base+" d";render();});
+const qi=document.getElementById("q");
+qi.addEventListener("input",()=>{UI.q=qi.value.trim();render();});
+document.getElementById("reset").addEventListener("click",()=>{
+  S=clone(DEFAULTS); bi.value=S.base; bo.textContent=S.base+" d"; render();});
+document.getElementById("scrim").addEventListener("click",closeSKU);
+addEventListener("keydown",e=>{
+  if(e.key==="Escape"){closeSKU();}
+  if(e.key==="/" && document.activeElement!==qi){e.preventDefault();qi.focus();}
+});
+work.addEventListener("scroll",()=>{tip.style.opacity="0";},{passive:true});
+
+render();
+
+</script>
